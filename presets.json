@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Rook Vantar",
+    "art": "art/rook-vantar.png",
+    "fruit": "blaze",
+    "look": {"frame":"male","proportion":"tall","build":"athletic","skin":15777696,"hairStyle":"messy","hairC":2039594,"eyeShape":"sharp","eyeC":12597290,"mark":"bandage","facial":"stubble","eyewear":"none","head":"bandana","headC":14168618,"top":"coat","topC":2960194,"bottom":"pants","bottomC":2829634,"sash":16765503,"feet":"boots","belt":"bandolier","armor":"pad","scarf":"none","scarfC":14168618,"weapon":"sword"}
+  },
+  {
+    "name": "Isolde Marr",
+    "art": "art/isolde-marr.png",
+    "fruit": "gale",
+    "look": {"frame":"female","proportion":"tall","build":"lean","skin":15965640,"hairStyle":"long","hairC":15744944,"eyeShape":"round","eyeC":3108824,"mark":"none","facial":"none","eyewear":"none","head":"none","headC":14168618,"top":"jacket","topC":2864806,"bottom":"shorts","bottomC":2829634,"sash":16765503,"feet":"boots","belt":"belt","armor":"bracers","scarf":"scarf","scarfC":16777215,"weapon":"twin"}
+  },
+  {
+    "name": "Brannoc Teal",
+    "art": "art/brannoc-teal.png",
+    "fruit": "quartz",
+    "look": {"frame":"male","proportion":"realistic","build":"heavy","skin":13011806,"hairStyle":"buzz","hairC":1973802,"eyeShape":"fierce","eyeC":3810326,"mark":"paint","facial":"beard","eyewear":"eyepatch","head":"none","headC":14168618,"top":"vest","topC":3050063,"bottom":"pants","bottomC":9135659,"sash":14168618,"feet":"boots","belt":"belt","armor":"pauldrons","scarf":"none","scarfC":14168618,"weapon":"fists"}
+  },
+  {
+    "name": "Nerissa Quill",
+    "art": "art/nerissa-quill.png",
+    "fruit": "echo",
+    "look": {"frame":"female","proportion":"anime","build":"lean","skin":16769736,"hairStyle":"buns","hairC":9064408,"eyeShape":"round","eyeC":8015832,"mark":"freckles","facial":"none","eyewear":"shades","head":"beanie","headC":16740241,"top":"tee","topC":16765503,"bottom":"shorts","bottomC":3829480,"sash":9064408,"feet":"sandals","belt":"belt","armor":"none","scarf":"none","scarfC":14168618,"weapon":"musket"}
+  }
+]

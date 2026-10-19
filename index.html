@@ -61,6 +61,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 .poster.new{justify-content:center;align-items:center;min-height:250px;border-style:dashed;background:rgba(255,241,207,.85)}
 .poster.new .plus{font-family:var(--display);font-size:64px;line-height:1}
 .poster.new .w{font-size:24px}
+.psec{font-family:var(--display);font-size:26px;color:var(--white);-webkit-text-stroke:1.2px var(--ink);text-shadow:3px 3px 0 var(--ink);letter-spacing:2px;margin:6px 0 0;align-self:flex-start}
+.poster .bty.rec{color:#2e8b57}
 
 /* creator */
 #create{background:none;pointer-events:none}
@@ -216,6 +218,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
       <button class="btn alt" id="delBtn" disabled>DELETE</button>
       <button class="btn" id="fightBtn" disabled>FIGHT</button>
     </div>
+    <h3 class="psec" id="presetH" hidden>PRESET CREW</h3>
+    <div class="posters" id="presets" hidden></div>
   </div>
 </section>
 
@@ -286,6 +290,7 @@ function persist(){try{localStorage.setItem(SKEY,JSON.stringify(SAVE))}catch(e){
 /* ================= data ================= */
 const PAL=[0xd8322a,0xff8a3d,0xffd23f,0x4fbf3a,0x2e8b57,0x2bb3a6,0x3a6ee8,0x26387a,0x8a4fd8,0xff6f91,0xffffff,0x2b2d42,0x8b5a2b,0xe9dcc0];
 const OPTS={
+ frame:[['male','Male'],['female','Female']],proportion:[['anime','Anime'],['tall','Tall anime'],['realistic','Realistic']],
  build:[['lean','Lean'],['athletic','Athletic'],['heavy','Heavy']],
  skin:[0xffe2c8,0xf6c9a0,0xe6b183,0xc68b5e,0x9a6440,0x6e4529],
  hairStyle:[['spiky','Spiky'],['messy','Messy'],['swept','Swept back'],['wild','Wild'],['long','Long'],['ponytail','Ponytail'],['braid','Braid'],['topknot','Top knot'],['buns','Twin buns'],['mohawk','Mohawk'],['buzz','Buzz cut']],
@@ -301,7 +306,7 @@ const OPTS={
  weapon:[['sword','Sword'],['twin','Twin blades'],['staff','Staff'],['fists','Fists'],['musket','Musket']],
 };
 const TABS=[
- ['Body',[['build','Body type','chips'],['skin','Skin tone','sw']]],
+ ['Body',[['frame','Body','chips'],['proportion','Proportions','chips'],['build','Build','chips'],['skin','Skin tone','sw']]],
  ['Hair',[['hairStyle','Style','chips'],['hairC','Color','sw']]],
  ['Face',[['eyeShape','Eyes','chips'],['eyeC','Eye color','sw'],['mark','Face mark','chips'],['facial','Facial hair','chips'],['eyewear','Eyewear','chips']]],
  ['Outfit',[['top','Top','chips'],['topC','Top color','sw'],['bottom','Bottom','chips'],['bottomC','Bottom color','sw'],['sash','Sash color','sw'],['feet','Footwear','chips'],['head','Headwear','chips'],['headC','Headwear color','sw']]],
@@ -368,6 +373,10 @@ const STAGES=[
   boss:{name:'Grand Warden Vos',top:'coat',topC:0x2b2d42,head:'captain',headC:0x1d1533}},
 ];
 const stageById=id=>STAGES.find(s=>s.id===id)||STAGES[0];
+function defaultLook(){const L={};for(const k in OPTS){const o=OPTS[k];L[k]=Array.isArray(o[0])?o[0][0]:o[0]}return L}
+let PRESETS=[];
+try{fetch('presets.json',{cache:'no-cache'}).then(r=>r.ok?r.json():[]).then(j=>{PRESETS=(Array.isArray(j)?j:[]).filter(q=>q&&q.name&&q.look).map(q=>({name:String(q.name).slice(0,14),look:Object.assign(defaultLook(),q.look),fruit:fruitById(q.fruit).id,art:q.art?String(q.art):'',lvl:1}));
+  if(mode==='menu'&&!$('#pick').hidden)buildPosters()}).catch(()=>{})}catch(e){}
 function randomLook(){const pk=a=>a[(Math.random()*a.length)|0],L={};
   for(const k in OPTS){const o=OPTS[k];L[k]=Array.isArray(o[0])?pk(o)[0]:pk(o)}return L}
 
@@ -408,9 +417,9 @@ const UP=new R.Vector3(0,1,0);
 
 /* ================= anime faces ================= */
 const FACES={};
-function faceTex(L,expr){const k=[L.eyeShape,L.eyeC,L.mark,L.skin,L.hairC,L.facial,L.eyewear,expr].join('|');if(FACES[k])return FACES[k];
+function faceTex(L,expr){const k=[L.eyeShape,L.eyeC,L.mark,L.skin,L.hairC,L.facial,L.eyewear,L.frame,L.proportion,expr].join('|');const fem=L.frame==='female',real=L.proportion==='realistic';if(FACES[k])return FACES[k];
   const c=document.createElement('canvas');c.width=256;c.height=192;const x=c.getContext('2d'),ink='#1d1533';x.lineCap='round';x.lineJoin='round';
-  const skin=hex(L.skin),brow=L.hairC===0xf4f1ea?'#8a8478':hex(L.hairC),ey=104,rx=27,ry=L.eyeShape==='round'?34:L.eyeShape==='sharp'?28:22;
+  const skin=hex(L.skin),brow=L.hairC===0xf4f1ea?'#8a8478':hex(L.hairC),ey=104,rx=real?22:27,ry=(L.eyeShape==='round'?34:L.eyeShape==='sharp'?28:22)*(real?.6:1);
   const ell=(cx,cy,a,b)=>{x.beginPath();x.ellipse(cx,cy,a,b,0,0,PI*2)};
   // marks under everything
   if(L.mark==='blush'){x.fillStyle='rgba(255,105,130,.45)';ell(58,146,20,9);x.fill();ell(198,146,20,9);x.fill()}
@@ -432,12 +441,15 @@ function faceTex(L,expr){const k=[L.eyeShape,L.eyeC,L.mark,L.skin,L.hairC,L.faci
       x.fillStyle=skin;x.beginPath();x.moveTo(cx-ins*(rx+5),oy-14);x.lineTo(cx+ins*(rx+5),oy-14);x.lineTo(cx+ins*(rx+5),ly);x.lineTo(cx-ins*(rx+5),oy);x.closePath();x.fill();
       x.strokeStyle=ink;x.lineWidth=8;x.beginPath();x.moveTo(cx+ins*(rx+2),ly+2);x.lineTo(cx-ins*(rx+3),oy+1);x.lineTo(cx-ins*(rx+11),oy-6);x.stroke()}
     x.lineWidth=2.5;x.beginPath();x.ellipse(cx,ey,rx,ry,0,PI*.25,PI*.75);x.stroke();
+    if(fem){x.lineWidth=4;for(let q=0;q<3;q++){const a=PI*(1.05+q*.07)*(ins<0?1:1);const px=cx-ins*(rx-2-q*5),py=ey-ry*(.75-q*.12);x.beginPath();x.moveTo(px,py);x.lineTo(px-ins*(9-q*2),py-9+q*2);x.stroke()}x.lineWidth=3;x.beginPath();x.ellipse(cx,ey+1,rx,ry,0,PI*.15,PI*.4);x.stroke()}
     x.strokeStyle=brow;x.lineWidth=8;x.beginPath();const fierce=L.eyeShape==='fierce'||expr==='shout';
     x.moveTo(cx-ins*26,ey-ry-(fierce?20:22));x.quadraticCurveTo(cx,ey-ry-(fierce?20:28),cx+ins*22,ey-ry-(fierce?4:14));x.stroke()});
+  if(real){x.strokeStyle='rgba(90,45,30,.55)';x.lineWidth=3;x.beginPath();x.moveTo(130,124);x.lineTo(124,146);x.lineTo(132,148);x.stroke()}
   x.strokeStyle=ink;x.fillStyle='#7a1f2a';x.lineWidth=4;
   if(expr==='shout'){x.beginPath();x.moveTo(104,160);x.quadraticCurveTo(128,154,152,160);x.quadraticCurveTo(146,192,128,190);x.quadraticCurveTo(110,192,104,160);x.fill();x.stroke();
     x.fillStyle='#fff';x.fillRect(110,158,36,6);x.fillStyle='#ff7f8f';ell(128,182,10,5);x.fill()}
   else if(expr==='hurt'){x.lineWidth=4.5;x.beginPath();x.moveTo(108,172);for(let i=0;i<5;i++)x.lineTo(112+i*8,i%2?168:176);x.stroke()}
+  else if(fem){x.fillStyle='#d4566e';x.beginPath();x.moveTo(114,168);x.quadraticCurveTo(128,162,142,168);x.quadraticCurveTo(128,180,114,168);x.fill();x.lineWidth=2.5;x.strokeStyle='#8a2a3a';x.stroke()}
   else{x.lineWidth=4.5;x.beginPath();x.moveTo(112,170);x.quadraticCurveTo(130,178,146,166);x.stroke()}
   if(L.eyewear==='eyepatch'){x.strokeStyle=ink;x.lineWidth=5;x.beginPath();x.moveTo(150,80);x.lineTo(40,40);x.moveTo(220,110);x.lineTo(256,124);x.stroke();x.fillStyle='#1d1533';x.beginPath();x.ellipse(187,104,30,27,-.15,0,PI*2);x.fill()}
   if(L.eyewear==='shades'){x.fillStyle='rgba(22,20,34,.94)';x.strokeStyle='#3a3a44';x.lineWidth=4;[69,187].forEach(cx=>{x.beginPath();x.arc(cx,106,30,0,PI*2);x.fill();x.stroke()});
@@ -453,11 +465,13 @@ function chestTex(){if(CHEST)return CHEST;const c=document.createElement('canvas
   x.beginPath();x.moveTo(128,40);x.lineTo(128,118);x.stroke();x.lineWidth=2.4;[64,84,104].forEach(y=>{x.beginPath();x.moveTo(108,y);x.quadraticCurveTo(118,y+4,126,y);x.moveTo(148,y);x.quadraticCurveTo(138,y+4,130,y);x.stroke()});
   x.beginPath();x.moveTo(96,60);x.quadraticCurveTo(100,90,110,120);x.moveTo(160,60);x.quadraticCurveTo(156,90,146,120);x.stroke();return CHEST=new R.CanvasTexture(c)}
 function figure(L,noShadow){
-  const B=BUILD[L.build]||BUILD.athletic,g=new R.Group(),body=new R.Group();g.add(body);body.scale.setScalar(B.sc*(L.scale||1));
+  const fem=L.frame==='female',prop=L.proportion||'anime',LS=prop==='anime'?1:prop==='tall'?1.12:1.16;
+  const B=Object.assign({},BUILD[L.build]||BUILD.athletic);if(fem){B.sh*=.8;B.tr*=.84;B.ar*=.84;B.lr*=.94}
+  const g=new R.Group(),body=new R.Group();g.add(body);body.scale.setScalar(B.sc*(L.scale||1));
   const STEEL=0x9aa6b8,TRIM=0xd8a838,LEATHER=0x5a3b1d;
-  const hipY=.82,pants=L.bottom==='pants',cast=!noShadow,P_=(p,gg,c,x,y,z,o)=>part(p,gg,c,x,y,z,o,cast);
-  P_(body,cyl(B.tr*1.02,B.tr*1.08,.2,16),L.bottomC,0,hipY,0,1.06).scale.z=.8;
-  const legs=[-1,1].map(s=>{const hip=new R.Group();hip.position.set(.12*s*(B.tr/.24),hipY,0);body.add(hip);
+  const hipY=.82*LS,pants=L.bottom==='pants',cast=!noShadow,P_=(p,gg,c,x,y,z,o)=>part(p,gg,c,x,y,z,o,cast);
+  {const pv=P_(body,cyl(B.tr*1.02,B.tr*(fem?1.22:1.08),.2,16),L.bottomC,0,hipY,0,1.06);pv.scale.z=.8}
+  const legs=[-1,1].map(s=>{const hip=new R.Group();hip.position.set(.12*s*(B.tr/.24)*(fem?1.18:1),hipY,0);hip.scale.y=LS;body.add(hip);
     P_(hip,cap(B.lr*1.18,.22),L.bottomC,0,-.17,0,1.12);
     const knee=new R.Group();knee.position.y=-.38;hip.add(knee);
     P_(knee,cap(B.lr*.95,.2),pants?L.bottomC:L.skin,0,-.16,0,1.14);
@@ -471,6 +485,7 @@ function figure(L,noShadow){
   P_(torso,cyl(B.sh*.88,B.tr,.5,18),tc,0,.32,0,1.06).scale.z=.72;
   P_(torso,sph(B.sh*.92),tc,0,.56,0,1.06).scale.set(1,.42,.72);
   if(B.belly)P_(torso,sph(B.tr*1.12),tc,0,.24,.05,1.06).scale.set(1,.92,.86);
+  if(fem)[-1,1].forEach(s=>P_(torso,sph(B.tr*.42),tc,s*B.sh*.4,.43,front*.82,1.06).scale.set(1,.88,.78));
   if(bare){const d=new R.Mesh(geo('chest'+L.build,()=>new R.CylinderGeometry(B.sh*.88+.006,B.tr+.006,.5,20,1,true,-.95,1.9)),new R.MeshBasicMaterial({map:chestTex(),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}));d.position.y=.32;d.scale.z=.72;torso.add(d)}
   if(L.top==='vest'){[-1,1].forEach(s=>{const v=P_(torso,box(B.sh*.5,.52,.04),L.topC,s*B.sh*.52,.33,front+.02,1.06);v.rotation.y=-s*.42;v.rotation.z=s*.06});
     P_(torso,box(B.sh*1.75,.54,.04),L.topC,0,.33,-front-.01,1.06)}
@@ -499,7 +514,7 @@ function figure(L,noShadow){
     const hand=new R.Group();hand.position.y=-.3;el.add(hand);
     P_(hand,sph(L.weapon==='fists'?.125:.085),L.weapon==='fists'?0xf4f1ea:L.skin,0,0,0,1.12);
     sh.userData.el=el;sh.userData.hand=hand;return sh});
-  const head=new R.Group();head.position.y=.99;torso.add(head);
+  const head=new R.Group();head.position.y=.99-(prop==='realistic'?.06:prop==='tall'?.03:0);head.scale.setScalar(prop==='anime'?1:prop==='tall'?.9:.8);torso.add(head);
   P_(head,sph(.34),L.skin,0,0,0,1.055).scale.set(1,1.04,1);
   [-1,1].forEach(s=>P_(head,sph(.07),L.skin,.33*s,-.03,0,1.12).scale.set(.5,1,.8));
   const fm=new R.MeshToonMaterial({map:faceTex(L,'n'),transparent:true,gradientMap:gm,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
@@ -746,7 +761,7 @@ function startGame(stage){
   P={fig:f,pos:new R.Vector3(0,0,5),yaw:PI,lvl:PR.lvl,xp:PR.xp,cds:[0,0,0,0],atkCd:0,atkAnim:0,combo:0,lastAtk:-9,cast:0,inv:0,dash:null,ph:0,mv:0,hp:0};
   stats();P.hp=P.maxHp;camYaw=0;camera.clearViewOffset();
   Object.assign(W,{wave:0,state:'between',t:1.5,queue:[],spawnT:0,bounty:0,kills:0,chain:0,chainT:0});
-  $('#hudFace').src=portrait(PR);$('#hudName').textContent=PR.name;
+  setPortrait($('#hudFace'),PR);$('#hudName').textContent=PR.name;
   FR.ab.forEach((a,i)=>{const b=$('#ab'+i);b.style.setProperty('--c',FR.css);b.querySelector('.nm').textContent=a.n;b.querySelector('.lock').textContent='Lv '+UNLOCK[i]});
   showScreen(null);$('#hud').hidden=false;mode='play';paused=false;updHud(true);banner(STG.name,STG.sub);
 }
@@ -759,7 +774,7 @@ function clearWorld(){
 
 /* enemies */
 const SKINS=[0xf6c9a0,0xe6b183,0xc68b5e,0x9a6440,0xffe2c8];
-const ENEMY_BASE={facial:'none',eyewear:'none',armor:'none',belt:'belt',scarf:'none',build:'athletic',hairStyle:'buzz',hairC:0x3b2a20,eyeShape:'sharp',eyeC:0x3a2416,mark:'none',head:'navycap',headC:0x26387a,top:'jacket',topC:0xf4f6fb,bottom:'pants',bottomC:0x26387a,sash:0x26387a,feet:'boots',weapon:'sword'};
+const ENEMY_BASE={frame:'male',proportion:'tall',facial:'none',eyewear:'none',armor:'none',belt:'belt',scarf:'none',build:'athletic',hairStyle:'buzz',hairC:0x3b2a20,eyeShape:'sharp',eyeC:0x3a2416,mark:'none',head:'navycap',headC:0x26387a,top:'jacket',topC:0xf4f6fb,bottom:'pants',bottomC:0x26387a,sash:0x26387a,feet:'boots',weapon:'sword'};
 function spawnEnemy(type){
   const n=W.wave,M=STG.mult,a=Math.random()*PI*2,pos=new R.Vector3(Math.cos(a)*22,0,Math.sin(a)*22);
   let L=Object.assign({},ENEMY_BASE,{skin:SKINS[(Math.random()*SKINS.length)|0]}),hp=28,spd=3.3,dmg=8,sc=1,xp=12,bty=5000;
@@ -1038,9 +1053,10 @@ function portrait(p){const k=JSON.stringify(p.look);if(PCACHE[k])return PCACHE[k
     const f=figure(p.look,true);f.g.rotation.y=-.35;f.arms[1].rotation.set(-.4,0,.5);PRR.s.add(f.g);const s=BUILD[p.look.build].sc;
     PRR.c.position.set(0,1.85*s,3.7*s);PRR.c.lookAt(0,1.62*s,0);PRR.r.render(PRR.s,PRR.c);PCACHE[k]=PRR.r.domElement.toDataURL();PRR.s.remove(f.g);f.fm.dispose()}catch(e){PCACHE[k]=''}
   return PCACHE[k]}
+function setPortrait(im,p){im.onerror=null;if(p.art){im.onerror=()=>{im.onerror=null;im.src=portrait(p)};im.src=p.art}else im.src=portrait(p)}
 function posterBody(p,bounty,a,b){const fr=fruitById(p.fruit),frag=document.createDocumentFragment(),el=(t,c,txt)=>{const e=document.createElement(t);e.className=c;if(txt!=null)e.textContent=txt;frag.append(e);return e};
-  el('div','w','WANTED');const ph=el('div','ph');const im=document.createElement('img');im.alt='';im.src=portrait(p);ph.append(im);
-  el('div','nm',p.name);el('div','ep',titleOf(p.lvl)+' · '+fr.name);el('div','bty',bounty.toLocaleString('en-US')+' G');
+  el('div','w','WANTED');const ph=el('div','ph');const im=document.createElement('img');im.alt='';setPortrait(im,p);ph.append(im);
+  el('div','nm',p.name);el('div','ep',titleOf(p.lvl)+' · '+fr.name);if(bounty==null)el('div','bty rec','RECRUIT');else el('div','bty',bounty.toLocaleString('en-US')+' G');
   const m=el('div','meta');[`Lv ${p.lvl}`,a,b].forEach(t=>{const s=document.createElement('span');s.textContent=t;m.append(s)});return frag}
 
 /* ================= menus ================= */
@@ -1053,6 +1069,10 @@ function buildPosters(){const el=$('#posters');el.innerHTML='';
   SAVE.pirates.forEach((p,i)=>{const b=document.createElement('button');b.className='poster'+(selId===p.id?' sel':'');b.style.setProperty('--r',[-2,1.5,-1,2][i%4]+'deg');
     b.append(posterBody(p,p.best,`${p.cleared.length}/${STAGES.length} isles`,p.sp?`${p.sp} SP`:''));b.onclick=()=>{selId=p.id;delArm=0;buildPosters()};el.appendChild(b)});
   if(SAVE.pirates.length<8){const n=document.createElement('button');n.className='poster new';n.innerHTML='<div class="plus">+</div><div class="w">NEW PIRATE</div>';n.onclick=()=>openCreator(null);el.appendChild(n)}
+  const ph=$('#presetH'),pg=$('#presets');ph.hidden=pg.hidden=!PRESETS.length;pg.innerHTML='';
+  PRESETS.forEach((q,i)=>{const b=document.createElement('button');b.className='poster';b.style.setProperty('--r',[1.5,-2,2,-1][i%4]+'deg');b.disabled=SAVE.pirates.length>=8;
+    b.append(posterBody(q,null,fruitById(q.fruit).tag+' type',''));
+    b.onclick=()=>{if(SAVE.pirates.length>=8)return;const np={id:'p'+Date.now().toString(36),name:q.name,look:Object.assign({},q.look),fruit:q.fruit,art:q.art,lvl:1,xp:0,best:0,wave:0,sp:0,up:{},cleared:[]};SAVE.pirates.push(np);selId=np.id;persist();sfx('lvl');buildPosters()};pg.appendChild(b)});
   const p=selP();['editBtn','delBtn','fightBtn','trainBtn'].forEach(id=>$('#'+id).disabled=!p);$('#delBtn').textContent=delArm?'TAP TO CONFIRM':'DELETE';
   $('#trainBtn').textContent=p&&p.sp?`TRAIN (${p.sp})`:'TRAIN'}
 $('#goPick').onclick=()=>{sfx('swing');openPick()};
@@ -1122,7 +1142,7 @@ $('#randBtn').onclick=()=>{C.look=randomLook();rebuildPreview();buildOpts()};
 $('#cBack').onclick=()=>{dropFig(preview);preview=null;openPick()};
 $('#cSave').onclick=()=>{const name=$('#pName').value.trim();
   if(!C.fruit){tabI=TABS.findIndex(t=>t[0]==='Fruit');buildTabs();return}if(!name){$('#pName').focus();return}
-  if(C.edit){C.edit.name=name;C.edit.look=C.look;selId=C.edit.id}
+  if(C.edit){if(JSON.stringify(C.edit.look)!==JSON.stringify(C.look))delete C.edit.art;C.edit.name=name;C.edit.look=C.look;selId=C.edit.id}
   else{const p={id:'p'+Date.now().toString(36),name,look:C.look,fruit:C.fruit,lvl:1,xp:0,best:0,wave:0,sp:0,up:{},cleared:[]};SAVE.pirates.push(p);selId=p.id}
   persist();dropFig(preview);preview=null;sfx('lvl');openPick()};
 function fruitSVG(css){let ridge='';[-16,0,16].forEach(o=>ridge+=`<path d="M${50+o} 26 Q${50+o*1.9} 58 ${50+o} 92" fill="none" stroke="#1d1533" stroke-width="2.6" opacity=".45"/>`);
